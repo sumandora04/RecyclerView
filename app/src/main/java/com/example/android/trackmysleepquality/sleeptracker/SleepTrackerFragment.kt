@@ -22,16 +22,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.android.trackmysleepquality.R
 import com.example.android.trackmysleepquality.database.SleepDatabase
 import com.example.android.trackmysleepquality.databinding.FragmentSleepTrackerBinding
+import com.example.android.trackmysleepquality.sleepdetail.SleepDetailFragmentDirections
 import com.google.android.material.snackbar.Snackbar
 
 /**
@@ -68,15 +71,33 @@ class SleepTrackerFragment : Fragment() {
         binding.sleepTrackerViewModel = sleepTrackerViewModel
 
         //RecyclerView:
-        val adapter = SleepNightAdapter()
+//        val adapter = SleepNightAdapter()
+        val adapter = SleepNightAdapter(SleepNightListener {
+           sleepTrackerViewModel.onSleepNightClicked(it)
+        })
         //Layout manager for recyclerView -- already defined in the layout xml file.
 //        val layoutManager: RecyclerView.LayoutManager = LinearLayoutManager(this.context)
 //        binding.sleepList.layoutManager =layoutManager
+
+        /*GridView layout manager:*/ // sleepList is the recyclerView
+        val layoutManager = GridLayoutManager(activity,3)
+        //To give the header a span size of 1:
+        layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int): Int = when(position){
+                0-> 3
+                else ->1
+            }
+        }
+
+        binding.sleepList.layoutManager = layoutManager
+
         binding.sleepList.adapter = adapter // Set adapter to recycler view.
         //Tell the adapter-- actually what data it should adapt.
         sleepTrackerViewModel.nights.observe(this, Observer {
             it?.let {
-                adapter.data = it // When ever there will be a non-null value, add it to the adapter.
+//                adapter.data = it // When ever there will be a non-null value, add it to the adapter.
+//                adapter.submitList(it)
+                adapter.addHeaderAndSubmitList(it)
             }
         })
 
@@ -117,7 +138,12 @@ class SleepTrackerFragment : Fragment() {
         })
 
 
-
+        sleepTrackerViewModel.navigateToSleepDataQuality.observe(this, Observer {
+            it?.let {
+                this.findNavController().navigate(SleepTrackerFragmentDirections.actionSleepTrackerFragmentToSleepDetailFragment(it))
+                sleepTrackerViewModel.onSleepDataQualityNavigated()
+            }
+        })
 
 
         return binding.root
